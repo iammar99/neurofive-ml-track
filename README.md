@@ -54,7 +54,7 @@ Each `TaskX` folder contains its own `README.md` with task details, approach, an
 
 ## Tools & Technologies
 - Python
-- Jupyter Notebook / Google Colab
+- Jupyter Notebook / Google Colab / RStudio
 - pandas, NumPy
 - (More tools added as tasks progress)
 
