@@ -5,13 +5,19 @@ This repository documents my 6-week Machine Learning internship at Neurofive Sol
 ## Repository Structure
 
 ```
-├── Week 1
-│   ├── Task1
-│   │   ├── README.md
-│   │   ├── task1.py
-│   │   └── Titanic-Dataset.csv
-│   └── Task2
-│       └── README.md
+└───Week 1
+    │   .Rhistory
+    │
+    ├───Task 1
+    │       README.md
+    │       task1.py
+    │       Titanic-Dataset.csv
+    │
+    └───Task 2
+            README.md
+            task2.py
+            Titanic-Dataset.csv
+            visualizations.png
 ├── Week 2
 │   ├── Task1
 │   │   └── README.md
