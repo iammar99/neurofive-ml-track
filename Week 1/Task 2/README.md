@@ -1,47 +1,48 @@
-# Task 1 — Titanic Dataset: Exploratory Data Analysis
+# Task 2 — Titanic Dataset: Missing Values, Outliers & Visualizations
 
 ## Overview
-This task covers the basics of loading, inspecting, and summarizing a real-world dataset using Python, pandas, and NumPy. The dataset used is the Titanic dataset from Kaggle's "Titanic - Machine Learning from Disaster" competition.
+This task builds on the Titanic dataset EDA from Task 1. It focuses on handling missing values, detecting outliers, creating visualizations, and drawing conclusions about which feature most affects survival.
 
 ## Tools Used
 - Python
-- Rstudio
-- pandas
-- NumPy
+- pandas, NumPy
+- matplotlib, seaborn
 
 ## Steps Performed
-1. Installed Python, RStudio, pandas, and NumPy.
-2. Downloaded the Titanic dataset from Kaggle.
-3. Loaded the dataset using `pandas.read_csv()`.
-4. Inspected the data using `.info()`, `.describe()`, and `.head()`.
-5. Identified dataset shape, missing values, and column types.
-6. Summarized findings in a markdown cell within the notebook.
 
-## Dataset Summary
+### 1. Handling Missing Values
+Checked missing values with `.isna().sum()`:
 
-**Shape:** 891 rows × 12 columns
+| Column   | Missing Values |
+|----------|-----------------|
+| Age      | 177 |
+| Cabin    | 687 |
+| Embarked | 2 |
 
-**Missing Values:**
+- **Embarked**: Filled with the mode, since only 2 values are missing — too small to meaningfully affect the data either way, but dropping rows was avoided to keep all passenger records intact.
+- **Age**: A few extreme outliers (age < 1) were dropped first, then remaining missing values were filled with the mean age (rounded up). Mean was chosen over median since the distribution, after removing outliers, was reasonably close to normal.
+- **Cabin**: Filled with `"Unknown"` instead of dropping, since ~77% of values are missing — dropping the column or rows would lose too much data. Keeping it as a distinct category preserves the information that cabin data wasn't recorded, which may itself be meaningful.
 
-| Column      | Missing Values |
-|-------------|----------------|
-| PassengerId | 0 |
-| Survived    | 0 |
-| Pclass      | 0 |
-| Name        | 0 |
-| Sex         | 0 |
-| Age         | 177 |
-| SibSp       | 0 |
-| Parch       | 0 |
-| Ticket      | 0 |
-| Fare        | 0 |
-| Cabin       | 687 |
-| Embarked    | 2 |
+### 2. Outlier Detection
+Used a boxplot on the `Age` column to visualize spread and outliers.
 
-**Categorical columns:** Survived, Pclass, Embarked, Sex
+- Min age: 0.42
+- Max age: 80
+- Median age: 28.0
+- Mean age: 30.0
+- Found 7 records with age < 1 (infants), treated as outliers and dropped before imputing missing values.
 
-**Numerical columns:** Age, Fare, SibSp, Parch
+### 3. Visualizations
+Created at least 4 visualizations using matplotlib and seaborn:
+- **Histogram** — distribution of passenger ages
+- **Boxplot** — age distribution and outliers
+- **Bar chart** — survival counts across a categorical feature
+- **Correlation heatmap** — relationships between numerical features
 
-## Data Story (Findings)
-The Titanic dataset contains 891 passenger records across 12 columns. Two columns — Age and Cabin — have significant missing data, with Cabin missing in over 75% of rows, making it unreliable for direct analysis. Age has moderate missingness (~20%) and will likely need imputation. Embarked has only 2 missing values and can be handled easily. The dataset has a mix of categorical (Survived, Pclass, Sex, Embarked) and numerical (Age, Fare, SibSp, Parch) features, setting up a solid foundation for further cleaning and feature engineering.
+<img src="visualizations.png">
 
+### 4. Correlation Analysis
+Computed the correlation matrix using `data.corr(numeric_only=True)`.
+
+## Findings: Which Feature Most Affects Survival?
+**Pclass** shows the strongest correlation with survival among numerical features, at approximately **-0.33** — the strongest of any feature in the correlation matrix. This negative correlation suggests that passengers in lower-numbered classes (1st class) had a notably higher chance of survival than those in 3rd class, likely due to factors like cabin location, proximity to lifeboats, and priority during evacuation.
