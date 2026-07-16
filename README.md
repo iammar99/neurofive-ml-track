@@ -45,7 +45,7 @@ Each `TaskX` folder contains its own `README.md` with task details, approach, an
 
 | Week | Task 1 | Task 2 |
 |------|--------|--------|
-| Week 1 | Titanic Dataset – Exploratory Data Analysis | TBD |
+| Week 1 | Titanic Dataset – Exploratory Data Analysis | Titanic Dataset: Missing Values, Outliers & Visualizations |
 | Week 2 | TBD | TBD |
 | Week 3 | TBD | TBD |
 | Week 4 | TBD | TBD |
