@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 #         Importing DataSet
 # ==========================================
 
-
 data = pd.read_csv("G:\\Internships\\Neurofive ML\\Week 1\\Task 1\\Titanic-Dataset.csv")
 
 
@@ -155,3 +154,15 @@ correlation_matrix = data.corr(numeric_only=True)
 
 
 # Survival is mostly affected by PClass because it is correlating with survival with -0.33 maximum than all others
+
+
+
+# ==========================================
+#         Exporting DataSet
+# ==========================================
+
+
+
+
+
+data.to_csv("G:\\Internships\\Neurofive ML\\Week 1\\Task 1\\Titanic_Cleaned.csv")
