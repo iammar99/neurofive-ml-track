@@ -20,11 +20,25 @@ This repository documents my 6-week Machine Learning internship at Neurofive Sol
 │           Titanic-Dataset.csv
 │           visualizations.png
 │
-└───Week 2
+├───Week 2
+│   ├───Task 1
+│   │       README.md
+│   │       task1.py
+│   │       Titanic-Dataset.csv
+│   │       Titanic_Cleaned.csv
+│   │
+│   └───Task 2
+│           .Rhistory
+│           correlation.png
+│           Housing.csv
+│           README.md
+│           scatterplot.png
+│           task2.py
+│
+└───Week 3
     ├───Task 1
     │       README.md
     │       task1.py
-    │       Titanic-Dataset.csv
     │       Titanic_Cleaned.csv
     │
     └───Task 2
@@ -34,11 +48,6 @@ This repository documents my 6-week Machine Learning internship at Neurofive Sol
             README.md
             scatterplot.png
             task2.py
-├── Week 3
-│   ├── Task1
-│   │   └── README.md
-│   └── Task2
-│       └── README.md
 ├── Week 4
 │   ├── Task1
 │   │   └── README.md
@@ -64,7 +73,7 @@ Each `TaskX` folder contains its own `README.md` with task details, approach, an
 |------|--------|--------|
 | Week 1 | Titanic Dataset – Exploratory Data Analysis | Titanic Dataset: Missing Values, Outliers & Visualizations |
 | Week 2 | Predict Titanic Survival | House Price Prediction with Linear Regression |
-| Week 3 | TBD | TBD |
+| Week 3 | Model Evaluation & Tuning | TBD |
 | Week 4 | TBD | TBD |
 | Week 5 | TBD | TBD |
 | Week 6 | TBD | TBD |
