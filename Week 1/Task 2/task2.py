@@ -5,13 +5,17 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.linear_model import LinearRegression
 
  
 # ==========================================
+
 #         Importing DataSet
 # ==========================================
 
-data = pd.read_csv("G:\\Internships\\Neurofive ML\\Week 1\\Task 1\\Titanic-Dataset.csv")
+data = pd.read_csv('G:\\Internships\\Neurofive ML\\Week 2\\Task 2\\Housing.csv')
 
 
 
@@ -20,149 +24,76 @@ data = pd.read_csv("G:\\Internships\\Neurofive ML\\Week 1\\Task 1\\Titanic-Datas
 # ==========================================
 
 
+# ------------------| Encoding categorical data |------------------
 
-# Checking how many null values 
-
-
-data.isna().sum()
-
-
-# Age            177
-# Cabin          687
-# Embarked         2
-
-# Embarked filled with mode or we can also drop because it is only 2 values will not effect our data
+data = pd.get_dummies(data,columns=["mainroad","guestroom","basement","hotwaterheating","airconditioning","prefarea"],drop_first=True)
+data = pd.get_dummies(data,columns=["furnishingstatus"],dtype=int)
+data.columns
 
 
-embarked_mode = data["Embarked"].mode()[0]
-data["Embarked"] = data["Embarked"].fillna(embarked_mode)
+# ------------------| Selecting most affective features |------------------
 
-# Detecting Outliers in Age
 
-sns.boxplot(x=data['Age'])
-plt.title('Distribution of Passenger Ages')
+# Select 3-5 features you believe most affect price (e.g., square footage, number of rooms, location)
+
+correlation = data.corr()
+
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation, annot=True, cmap='coolwarm', fmt='.2f')
 plt.show()
 
 
-data["Age"].min() # 0.42
-data["Age"].max() # 80
-data["Age"].median() # 28.0
-data["Age"].mean() # 30.0
-
-(data["Age"] < 1).sum() # There are 7 values less than 1
-data[data["Age"] < 1]["Age"]
-
-
-# Dropping all these outliers
-
-index_to_drop = data[data["Age"] < 1].index
-data["Age"] = data["Age"].drop(index_to_drop)
+y = data["price"]
+x = data[["area","airconditioning_yes","bathrooms","stories","parking","bedrooms","prefarea_yes","mainroad_yes"]]
 
 
 
-
-# Filling NA of Age with mean
-
-mean_age = np.ceil(data["Age"].mean())
-data["Age"] = data["Age"].fillna(mean_age)
-
-
-# Filling NA of Cabin with "Unkown"
-
-
-data["Cabin"].mode()
-data["Cabin"] = data["Cabin"].fillna("Unkown")
+# ------------------| Training the model |------------------
 
 
 
+# Train a Linear Regression model using scikit-learn
 
-# ==========================================
-#             visualizations 
-# ==========================================
+
+X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+
+
+model = LinearRegression()
+model.fit(X_train,y_train)
+y_pred = model.predict(X_test)
+
+
+# ------------------| Evaluting Performance |------------------
+
+# Evaluate performance using RMSE (Root Mean Squared Error) and R² score
+
+rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+r2 = r2_score(y_test, y_pred)
+
+print(f"Root Mean Squared Error (RMSE): {rmse:.4f}")
+print(f"R² Score: {r2:.4f}")
 
 
 
 
-# Ensure seaborn styles are applied
-sns.set_theme(style="whitegrid")
 
-# Create a figure with a 2x2 grid layout for all 4 plots
-fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+# ------------------| Visulaization |------------------
 
-# ==========================================
-# 1. Histogram (Top-Left)
-# ==========================================
-sns.histplot(
-    data=data, x="Age", kde=True, bins=30, color="skyblue", ax=axes[0, 0]
-)
-axes[0, 0].set_title("Distribution of Passenger Ages", fontsize=14)
-axes[0, 0].set_xlabel("Age", fontsize=12)
-axes[0, 0].set_ylabel("Count", fontsize=12)
 
-# ==========================================
-# 2. Boxplot (Top-Right)
-# ==========================================
-sns.boxplot(data=data, x="Pclass", y="Fare", palette="Set2", ax=axes[0, 1])
-axes[0, 1].set_ylim(0, 150)  # Limiting y-axis to see the boxes clearly
-axes[0, 1].set_title("Ticket Fare Distribution by Class", fontsize=14)
-axes[0, 1].set_xlabel("Passenger Class (Pclass)", fontsize=12)
-axes[0, 1].set_ylabel("Fare ($)", fontsize=12)
 
-# ==========================================
-# 3. Bar Chart (Bottom-Left)
-# ==========================================
-sns.countplot(
-    data=data, x="Sex", hue="Survived", palette="RdYlBu", ax=axes[1, 0]
-)
-axes[1, 0].set_title("Survival Count by Gender", fontsize=14)
-axes[1, 0].set_xlabel("Gender", fontsize=12)
-axes[1, 0].set_ylabel("Passenger Count", fontsize=12)
-axes[1, 0].legend(title="Survived", labels=["No", "Yes"])
+# Plot predicted vs. actual prices on a scatter plot to visually check your model's quality
 
-# ==========================================
-# 4. Correlation Heatmap (Bottom-Right)
-# ==========================================
-# Select only numerical columns for correlation
-numerical_cols = data.select_dtypes(include=["float64", "int64"])
-corr_matrix = numerical_cols.corr()
 
-sns.heatmap(
-    corr_matrix,
-    annot=True,
-    cmap="coolwarm",
-    fmt=".2f",
-    linewidths=0.5,
-    ax=axes[1, 1],
-)
-axes[1, 1].set_title("Correlation Heatmap of Numerical Features", fontsize=14)
+plt.figure(figsize=(8, 6))
+plt.scatter(y_test, y_pred, alpha=0.7, color='blue', edgecolors='k', label='Predictions')
 
-# Adjust layout so plots don't overlap
+min_val = min(min(y_test), min(y_pred))
+max_val = max(max(y_test), max(y_pred))
+plt.plot([min_val, max_val], [min_val, max_val], color='red', linestyle='--', linewidth=2, label='Ideal Fit')
+
+plt.title('Actual vs. Predicted Prices', fontsize=14, fontweight='bold')
+plt.xlabel('Actual Prices', fontsize=12)
+plt.ylabel('Predicted Prices', fontsize=12)
+plt.legend()
 plt.tight_layout()
-
-# Display the combined plots
 plt.show()
-
-
-
-# ==========================================
-#             Correlation
-# ==========================================
-
-
-
-correlation_matrix = data.corr(numeric_only=True)
-
-
-# Survival is mostly affected by PClass because it is correlating with survival with -0.33 maximum than all others
-
-
-
-# ==========================================
-#         Exporting DataSet
-# ==========================================
-
-
-
-
-
-data.to_csv("G:\\Internships\\Neurofive ML\\Week 1\\Task 1\\Titanic_Cleaned.csv")
