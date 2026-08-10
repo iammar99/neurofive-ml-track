@@ -1,108 +1,115 @@
-# Neurofive ML Internship — Week 2, Task 2
-## House Price Prediction using Linear Regression
+# Neurofive ML Internship — Week 3, Task 1
+## Model Evaluation & Hyperparameter Tuning (Titanic Classification)
 
 ### 📌 Overview
-This task builds a **Linear Regression** model to predict house prices using the Housing dataset. It covers feature selection based on correlation analysis, encoding categorical variables, training a regression model, and evaluating it using RMSE and R² score.
+This task revisits the **Logistic Regression** Titanic survival model built in Task 1 and goes deeper into evaluation and optimization. It covers precision/recall/F1-score analysis, a discussion of why accuracy alone can be misleading on imbalanced data, hyperparameter tuning with `GridSearchCV`, and a before/after performance comparison.
 
 ---
 
 ### 🎯 Objectives
-- Use a housing dataset with price and property features
-- Select 3–5 features believed to most affect price
-- Train a Linear Regression model using scikit-learn
-- Evaluate performance using RMSE (Root Mean Squared Error) and R² score
-- Plot predicted vs. actual prices to visually assess model quality
-- Explain the R² score in plain English
+- Revisit the Titanic classification model from the previous task
+- Calculate Precision, Recall, and F1-score using `classification_report`
+- Explain why accuracy alone can be misleading for imbalanced datasets
+- Tune at least 2 hyperparameters using `GridSearchCV`
+- Compare the tuned model's performance to the original in a before/after table
 
 ---
 
 ### 🗂️ Dataset
-`Housing.csv` — a housing dataset containing the target column `price` along with features such as `area`, `bedrooms`, `bathrooms`, `stories`, `parking`, `mainroad`, `guestroom`, `basement`, `hotwaterheating`, `airconditioning`, `prefarea`, and `furnishingstatus`.
+`Titanic_Cleaned.csv` — the same cleaned Titanic dataset used in Task 1, with `Sex`, `Embarked`, `Ticket`, and `Cabin` one-hot encoded.
 
 ---
 
 ### ⚙️ Workflow
 
-1. **Import Libraries**
-   `pandas`, `numpy`, `seaborn`, `matplotlib`, and relevant modules from `sklearn`.
+1. **Load & Prepare Data**
+   Re-loaded the cleaned dataset, one-hot encoded categorical columns, and split into train/test sets (80/20, `random_state=42`) — identical setup to Task 1.
 
-2. **Load Dataset**
-   Read the housing CSV file into a DataFrame.
+2. **Baseline Model**
+   Trained the original `LogisticRegression(max_iter=1000)` model and evaluated it with:
+   - `accuracy_score`
+   - `confusion_matrix` (visualized as a heatmap)
+   - `classification_report`
+   - `precision_score`, `recall_score`, `f1_score`
 
-3. **Encode Categorical Columns**
-   - Binary yes/no columns (`mainroad`, `guestroom`, `basement`, `hotwaterheating`, `airconditioning`, `prefarea`) encoded with `pd.get_dummies(drop_first=True)`.
-   - `furnishingstatus` (multi-category) one-hot encoded with `pd.get_dummies()`.
+3. **Hyperparameter Tuning**
+   Used `GridSearchCV` to search over:
+   - `C`: `[0.01, 0.1, 1, 10, 100]`
+   - `solver`: `['liblinear', 'lbfgs']`
 
-4. **Feature Selection via Correlation**
-   Generated a correlation heatmap to identify which features most strongly relate to `price`, then selected:
-   - `area`
-   - `bathrooms`
-   - `stories`
-   - `parking`
-   - `bedrooms`
-   - `airconditioning_yes`
-   - `prefarea_yes`
-   - `mainroad_yes`
+   with `cv=5` and `scoring='f1'` to find the best-performing combination.
 
-5. **Train/Test Split**
-   Split into 80% training and 20% testing data using `train_test_split(random_state=42)`.
+4. **Tuned Model Evaluation**
+   Extracted the best estimator (`grid_search.best_estimator_`), predicted on the test set, and recalculated accuracy, precision, recall, F1-score, and a new confusion matrix.
 
-6. **Model Training**
-   Trained a `LinearRegression()` model on the training set.
-
-7. **Evaluation**
-   - Predicted prices on the test set
-   - Calculated **RMSE** with `mean_squared_error` (square-rooted) and **R²** with `r2_score`
-   - Plotted **Actual vs. Predicted Prices** with a red dashed "ideal fit" line for visual comparison
-
----
-
-### 📊 Feature Correlation Heatmap
-
-The heatmap shows how strongly each numeric/encoded feature correlates with `price` and with each other. `area` (0.54), `bathrooms` (0.52), `airconditioning_yes` (0.45), `stories` (0.42), `parking` (0.38), and `mainroad_yes` (0.30) showed the strongest positive correlation with price, guiding the feature selection above.
-
-*(See `correlation.png`)*
-
----
-
-### 📈 Actual vs. Predicted Prices
-
-The scatter plot compares actual test-set prices against the model's predicted prices. Points closer to the red "Ideal Fit" line indicate more accurate predictions. The model tracks the general upward trend well for low-to-mid range prices, but tends to **underpredict** for higher-priced houses (points falling below the line at the top-right), suggesting the linear model doesn't fully capture the dynamics driving very expensive homes.
-
-*(See `scatterplot.png`)*
+5. **Before/After Comparison**
+   Built a simple comparison table (`pandas.DataFrame`) showing the original vs. tuned model side by side across all four metrics.
 
 ---
 
 ### 📊 Results
 
+**Original Model — Confusion Matrix**
+```
+[[90 15]
+ [19 55]]
+```
+
+**Original Model — Metrics**
+
 | Metric | Value |
 |--------|-------|
-| RMSE   | *(insert the value printed by your script, e.g. `1,150,000`)* |
-| R² Score | *(insert the value printed by your script, e.g. `0.65`)* |
+| Accuracy  | *0.8101* |
+| Precision | *0.7857* |
+| Recall    | *0.7432* |
+| F1-score  | *0.7639* |
 
-> ⚠️ Replace the placeholders above with the exact numbers printed by `print(f"Root Mean Squared Error (RMSE): {rmse:.4f}")` and `print(f"R² Score: {r2:.4f}")` when you run the script.
+**Best Hyperparameters Found**
+
+| Parameter | Value |
+|-----------|-------|
+| `C`       | *100* |
+| `solver`  | *liblinear* |
+
+
+**Before vs. After Comparison**
+
+| Metric | Original Model | Tuned Model |
+|--------|:---------------:|:------------:|
+| Accuracy  | *81.01%*  | *83.8%* |
+| Precision | *78.57% * | *83.58%* |
+| Recall    | *74.32%* | *75.68%* |
+| F1-score  | *76.39* | *79.43%* |
+
+> ⚠️ Fill in the placeholders above with the exact numbers printed by your script (`comparison` DataFrame and `grid_search.best_params_`).
 
 ---
 
-### 🗣️ What Does the R² Score Mean? (Plain English)
+### ⚠️ Why Accuracy Alone Can Be Misleading (Plain English)
 
-The R² score tells us **how well our model's predictions match the real house prices**, on a scale from 0 to 1. An R² of, say, 0.65 means our model can explain about **65% of the reasons why house prices go up or down**, based on the features we gave it (like area, bathrooms, and air conditioning). The remaining 35% is influenced by things our model doesn't account for — like exact location, renovation quality, or market conditions. In short, the closer R² is to 1, the more trustworthy the model's price predictions are; a score like this means the model is **reasonably useful but not perfect**, so predictions should be treated as good estimates rather than exact figures.
-
+Accuracy just tells us the percentage of total predictions the model got right — but it doesn't say **what kind** of mistakes it's making, or **who** it's failing. On an imbalanced dataset (say, if 90% of passengers didn't survive), a model could simply predict "did not survive" every single time and still score 90% accuracy, despite being completely useless at identifying survivors. That's why we also look at **precision** (of everyone we predicted as survivors, how many actually survived?), **recall** (of everyone who actually survived, how many did we correctly catch?), and **F1-score** (a balance between the two). These metrics reveal how well the model handles the *minority class* — the group that's harder to predict and often the one we care about most — which raw accuracy can hide.
 
 ---
+
+### 🔧 Note on the Script
+The provided script uses `GridSearchCV` but does not import it. Make sure to add the following import near the top of the file, alongside the other `sklearn` imports:
+```python
+from sklearn.model_selection import GridSearchCV
+```
+
+---
+
 
 ### 📁 Suggested Project Structure
 ```
-Week 2/Task 2/
+Week 3/Task 1/
 │
-├── Housing.csv
-├── task2.py
-├── correlation.png
-├── scatterplot.png
+├── Titanic_Cleaned.csv
+├── task3.py
 └── README.md
 ```
 
 ---
 
 ### ✅ Summary
-This task demonstrates a full regression pipeline — encoding categorical features, selecting predictors through correlation analysis, training a Linear Regression model, and evaluating it with RMSE and R² — to estimate house prices and visually assess prediction quality against actual values.
+This task extends the Titanic classification pipeline with deeper evaluation (precision, recall, F1-score) and systematic hyperparameter tuning via `GridSearchCV`, then quantifies the improvement — if any — over the original baseline model in a clear before/after comparison.

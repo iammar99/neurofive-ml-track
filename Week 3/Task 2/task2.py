@@ -5,164 +5,293 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    classification_report,
+    precision_score,
+    recall_score,
+    f1_score
+)
  
 # ==========================================
 #         Importing DataSet
 # ==========================================
 
-data = pd.read_csv("G:\\Internships\\Neurofive ML\\Week 1\\Task 1\\Titanic-Dataset.csv")
+
+data = pd.read_csv("G:\\Internships\\Neurofive ML\\Week 2\\Task 1\\Titanic_Cleaned.csv")
+
 
 
 
 # ==========================================
-#               Tasks
+#     Encoding categorical columns 
+# ==========================================
+
+
+# Encode categorical columns (e.g., "Sex", "Embarked") using OneHotEncoder or pd.get_dummies()
+
+df_encoded = pd.get_dummies(data, columns=['Sex', 'Embarked','Ticket','Cabin'], drop_first=True)
+
+
+# ==========================================
+#           Splitting dataset
+# ==========================================
+
+
+# Use scikit-learn to split your cleaned dataset into training and test sets using train_test_split
+
+X = df_encoded.drop(columns=['Survived','Name']) 
+y = df_encoded['Survived']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+print(f"Training features shape: {X_train.shape}")
+print(f"Testing features shape: {X_test.shape}")
+
+
+
+
+
+# ==========================================
+#           Selecting a Model
+# ==========================================
+
+
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+
+
+
+
+# ==========================================
+#    Testing Accuracy & Confusion Matrix
 # ==========================================
 
 
 
-# Checking how many null values 
+y_pred = model.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Model Accuracy: {accuracy * 100:.2f}%")
 
 
-data.isna().sum()
+
+# Model Accuracy: 81.01%
 
 
-# Age            177
-# Cabin          687
-# Embarked         2
-
-# Embarked filled with mode or we can also drop because it is only 2 values will not effect our data
+cm = confusion_matrix(y_test, y_pred)
+print("Confusion Matrix:")
+print(cm)
 
 
-embarked_mode = data["Embarked"].mode()[0]
-data["Embarked"] = data["Embarked"].fillna(embarked_mode)
+# ==========================================
+#           Visualization
+# ==========================================
 
-# Detecting Outliers in Age
-
-sns.boxplot(x=data['Age'])
-plt.title('Distribution of Passenger Ages')
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+            xticklabels=['Did Not Survive', 'Survived'], 
+            yticklabels=['Did Not Survive', 'Survived'])
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.title('Confusion Matrix')
 plt.show()
 
 
-data["Age"].min() # 0.42
-data["Age"].max() # 80
-data["Age"].median() # 28.0
-data["Age"].mean() # 30.0
 
-(data["Age"] < 1).sum() # There are 7 values less than 1
-data[data["Age"] < 1]["Age"]
-
-
-# Dropping all these outliers
-
-index_to_drop = data[data["Age"] < 1].index
-data["Age"] = data["Age"].drop(index_to_drop)
-
-
-
-
-# Filling NA of Age with mean
-
-mean_age = np.ceil(data["Age"].mean())
-data["Age"] = data["Age"].fillna(mean_age)
-
-
-# Filling NA of Cabin with "Unkown"
-
-
-data["Cabin"].mode()
-data["Cabin"] = data["Cabin"].fillna("Unkown")
 
 
 
 
 # ==========================================
-#             visualizations 
+# Classification Report - Original Model
 # ==========================================
 
+print("\nOriginal Model Classification Report:")
+print(classification_report(y_test, y_pred))
 
 
 
-# Ensure seaborn styles are applied
-sns.set_theme(style="whitegrid")
-
-# Create a figure with a 2x2 grid layout for all 4 plots
-fig, axes = plt.subplots(2, 2, figsize=(16, 12))
 
 # ==========================================
-# 1. Histogram (Top-Left)
+# Saving Original Model Metrics
 # ==========================================
-sns.histplot(
-    data=data, x="Age", kde=True, bins=30, color="skyblue", ax=axes[0, 0]
+
+original_precision = precision_score(
+    y_test,
+    y_pred
 )
-axes[0, 0].set_title("Distribution of Passenger Ages", fontsize=14)
-axes[0, 0].set_xlabel("Age", fontsize=12)
-axes[0, 0].set_ylabel("Count", fontsize=12)
 
-# ==========================================
-# 2. Boxplot (Top-Right)
-# ==========================================
-sns.boxplot(data=data, x="Pclass", y="Fare", palette="Set2", ax=axes[0, 1])
-axes[0, 1].set_ylim(0, 150)  # Limiting y-axis to see the boxes clearly
-axes[0, 1].set_title("Ticket Fare Distribution by Class", fontsize=14)
-axes[0, 1].set_xlabel("Passenger Class (Pclass)", fontsize=12)
-axes[0, 1].set_ylabel("Fare ($)", fontsize=12)
-
-# ==========================================
-# 3. Bar Chart (Bottom-Left)
-# ==========================================
-sns.countplot(
-    data=data, x="Sex", hue="Survived", palette="RdYlBu", ax=axes[1, 0]
+original_recall = recall_score(
+    y_test,
+    y_pred
 )
-axes[1, 0].set_title("Survival Count by Gender", fontsize=14)
-axes[1, 0].set_xlabel("Gender", fontsize=12)
-axes[1, 0].set_ylabel("Passenger Count", fontsize=12)
-axes[1, 0].legend(title="Survived", labels=["No", "Yes"])
+
+original_f1 = f1_score(
+    y_test,
+    y_pred
+)
+
+print(f"Precision: {original_precision:.4f}")
+print(f"Recall:    {original_recall:.4f}")
+print(f"F1-score:  {original_f1:.4f}")
+
+
 
 # ==========================================
-# 4. Correlation Heatmap (Bottom-Right)
+# Hyperparameter Tuning using GridSearchCV
 # ==========================================
-# Select only numerical columns for correlation
-numerical_cols = data.select_dtypes(include=["float64", "int64"])
-corr_matrix = numerical_cols.corr()
+
+param_grid = {
+    'C': [0.01, 0.1, 1, 10, 100],
+    'solver': ['liblinear', 'lbfgs']
+}
+
+grid_search = GridSearchCV(
+    estimator=LogisticRegression(max_iter=2000),
+    param_grid=param_grid,
+    cv=5,
+    scoring='f1',
+    n_jobs=1
+)
+
+grid_search.fit(X_train, y_train)
+
+
+
+# ==========================================
+# Best Hyperparameters
+# ==========================================
+
+print("Best Parameters:")
+print(grid_search.best_params_)
+
+print("\nBest Cross-Validation F1-score:")
+print(grid_search.best_score_)
+
+
+# ==========================================
+# Get Best Tuned Model
+# ==========================================
+
+tuned_model = grid_search.best_estimator_
+
+print("Best Tuned Model:")
+print(tuned_model)
+
+
+
+# ==========================================
+# Test Tuned Model
+# ==========================================
+
+y_pred_tuned = tuned_model.predict(X_test)
+
+print(classification_report(y_test, y_pred_tuned))
+
+
+
+
+
+
+# ==========================================
+# Saving Tuned Model Metrics
+# ==========================================
+
+tuned_accuracy = accuracy_score(
+    y_test,
+    y_pred_tuned
+)
+
+tuned_precision = precision_score(
+    y_test,
+    y_pred_tuned
+)
+
+tuned_recall = recall_score(
+    y_test,
+    y_pred_tuned
+)
+
+tuned_f1 = f1_score(
+    y_test,
+    y_pred_tuned
+)
+
+print("\nTuned Model Metrics:")
+print(f"Accuracy:  {tuned_accuracy:.4f}")
+print(f"Precision: {tuned_precision:.4f}")
+print(f"Recall:    {tuned_recall:.4f}")
+print(f"F1-score:  {tuned_f1:.4f}")
+
+
+
+
+
+
+
+# ==========================================
+# Before vs After Comparison
+# ==========================================
+
+comparison = pd.DataFrame({
+    'Metric': [
+        'Accuracy',
+        'Precision',
+        'Recall',
+        'F1-score'
+    ],
+    
+    'Original Model': [
+        accuracy,
+        original_precision,
+        original_recall,
+        original_f1
+    ],
+    
+    'Tuned Model': [
+        tuned_accuracy,
+        tuned_precision,
+        tuned_recall,
+        tuned_f1
+    ]
+})
+
+print("\n==========================================")
+print("BEFORE vs AFTER COMPARISON")
+print("==========================================")
+
+print(comparison)
+
+
+
+# ==========================================
+# Tuned Model Confusion Matrix
+# ==========================================
+
+cm_tuned = confusion_matrix(
+    y_test,
+    y_pred_tuned
+)
+
+print("\nTuned Model Confusion Matrix:")
+print(cm_tuned)
+
+plt.figure(figsize=(6, 5))
 
 sns.heatmap(
-    corr_matrix,
+    cm_tuned,
     annot=True,
-    cmap="coolwarm",
-    fmt=".2f",
-    linewidths=0.5,
-    ax=axes[1, 1],
+    fmt='d',
+    cmap='Greens',
+    xticklabels=['Did Not Survive', 'Survived'],
+    yticklabels=['Did Not Survive', 'Survived']
 )
-axes[1, 1].set_title("Correlation Heatmap of Numerical Features", fontsize=14)
 
-# Adjust layout so plots don't overlap
-plt.tight_layout()
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.title('Tuned Logistic Regression - Confusion Matrix')
 
-# Display the combined plots
 plt.show()
-
-
-
-# ==========================================
-#             Correlation
-# ==========================================
-
-
-
-correlation_matrix = data.corr(numeric_only=True)
-
-
-# Survival is mostly affected by PClass because it is correlating with survival with -0.33 maximum than all others
-
-
-
-# ==========================================
-#         Exporting DataSet
-# ==========================================
-
-
-
-
-
-data.to_csv("G:\\Internships\\Neurofive ML\\Week 1\\Task 1\\Titanic_Cleaned.csv")
