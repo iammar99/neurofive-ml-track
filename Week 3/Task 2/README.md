@@ -1,4 +1,5 @@
-# Neurofive ML Internship — Week 3, Task 1
+# Neurofive ML Internship — Week 3, Task 2
+
 ## Model Evaluation & Hyperparameter Tuning (Titanic Classification)
 
 ### 📌 Overview
@@ -102,7 +103,7 @@ from sklearn.model_selection import GridSearchCV
 
 ### 📁 Suggested Project Structure
 ```
-Week 3/Task 1/
+Week 3/Task 2/
 │
 ├── Titanic_Cleaned.csv
 ├── task3.py
