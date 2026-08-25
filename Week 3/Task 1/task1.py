@@ -3,166 +3,486 @@
 # ==========================================
 import pandas as pd
 import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
+import seaborn as sns
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
+
+  from sklearn.metrics import (
+      accuracy_score,
+      precision_score,
+      recall_score,
+      f1_score,
+      classification_report,
+      confusion_matrix
+  )
 
  
 # ==========================================
 #         Importing DataSet
 # ==========================================
 
-data = pd.read_csv("G:\\Internships\\Neurofive ML\\Week 1\\Task 1\\Titanic-Dataset.csv")
+
+df = pd.read_csv("G:\\Internships\\Neurofive ML\\Week 3\\Task 1\\Telco-Customer-Churn.csv")
+
+print("Shape:", df.shape)
+df.head()
 
 
 
 # ==========================================
-#               Tasks
+#               Basic EDA
 # ==========================================
 
 
+print("Dataset Shape:")
+print(df.shape)
 
-# Checking how many null values 
+print("\nColumn Names:")
+print(df.columns.tolist())
+
+print("\nData Types:")
+print(df.dtypes)
+
+print("\nMissing Values:")
+print(df.isnull().sum())
+
+print("\nDuplicate Rows:")
+print(df.duplicated().sum())
 
 
-data.isna().sum()
+
+print(df["Churn"].value_counts())
+
+print("\nChurn Percentage:")
+print(df["Churn"].value_counts(normalize=True) * 100)
 
 
-# Age            177
-# Cabin          687
-# Embarked         2
-
-# Embarked filled with mode or we can also drop because it is only 2 values will not effect our data
 
 
-embarked_mode = data["Embarked"].mode()[0]
-data["Embarked"] = data["Embarked"].fillna(embarked_mode)
 
-# Detecting Outliers in Age
+# ==========================================
+#     Check important numerical features
+# ==========================================
 
-sns.boxplot(x=data['Age'])
-plt.title('Distribution of Passenger Ages')
+
+df["TotalCharges"] = pd.to_numeric(
+    df["TotalCharges"],
+    errors="coerce"
+)
+
+df[["tenure", "MonthlyCharges", "TotalCharges"]].describe()
+
+
+plt.figure(figsize=(8, 5))
+
+sns.boxplot(
+    data=df,
+    x="Churn",
+    y="tenure"
+)
+
+plt.title("Churn vs Tenure")
 plt.show()
 
 
-data["Age"].min() # 0.42
-data["Age"].max() # 80
-data["Age"].median() # 28.0
-data["Age"].mean() # 30.0
 
-(data["Age"] < 1).sum() # There are 7 values less than 1
-data[data["Age"] < 1]["Age"]
+plt.figure(figsize=(8, 5))
 
-
-# Dropping all these outliers
-
-index_to_drop = data[data["Age"] < 1].index
-data["Age"] = data["Age"].drop(index_to_drop)
-
-
-
-
-# Filling NA of Age with mean
-
-mean_age = np.ceil(data["Age"].mean())
-data["Age"] = data["Age"].fillna(mean_age)
-
-
-# Filling NA of Cabin with "Unkown"
-
-
-data["Cabin"].mode()
-data["Cabin"] = data["Cabin"].fillna("Unkown")
-
-
-
-
-# ==========================================
-#             visualizations 
-# ==========================================
-
-
-
-
-# Ensure seaborn styles are applied
-sns.set_theme(style="whitegrid")
-
-# Create a figure with a 2x2 grid layout for all 4 plots
-fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-
-# ==========================================
-# 1. Histogram (Top-Left)
-# ==========================================
-sns.histplot(
-    data=data, x="Age", kde=True, bins=30, color="skyblue", ax=axes[0, 0]
+sns.boxplot(
+    data=df,
+    x="Churn",
+    y="MonthlyCharges"
 )
-axes[0, 0].set_title("Distribution of Passenger Ages", fontsize=14)
-axes[0, 0].set_xlabel("Age", fontsize=12)
-axes[0, 0].set_ylabel("Count", fontsize=12)
 
-# ==========================================
-# 2. Boxplot (Top-Right)
-# ==========================================
-sns.boxplot(data=data, x="Pclass", y="Fare", palette="Set2", ax=axes[0, 1])
-axes[0, 1].set_ylim(0, 150)  # Limiting y-axis to see the boxes clearly
-axes[0, 1].set_title("Ticket Fare Distribution by Class", fontsize=14)
-axes[0, 1].set_xlabel("Passenger Class (Pclass)", fontsize=12)
-axes[0, 1].set_ylabel("Fare ($)", fontsize=12)
+plt.title("Churn vs Monthly Charges")
+plt.show()
 
-# ==========================================
-# 3. Bar Chart (Bottom-Left)
-# ==========================================
+
+
+
+plt.figure(figsize=(8, 5))
+
 sns.countplot(
-    data=data, x="Sex", hue="Survived", palette="RdYlBu", ax=axes[1, 0]
+    data=df,
+    x="Contract",
+    hue="Churn"
 )
-axes[1, 0].set_title("Survival Count by Gender", fontsize=14)
-axes[1, 0].set_xlabel("Gender", fontsize=12)
-axes[1, 0].set_ylabel("Passenger Count", fontsize=12)
-axes[1, 0].legend(title="Survived", labels=["No", "Yes"])
 
-# ==========================================
-# 4. Correlation Heatmap (Bottom-Right)
-# ==========================================
-# Select only numerical columns for correlation
-numerical_cols = data.select_dtypes(include=["float64", "int64"])
-corr_matrix = numerical_cols.corr()
+plt.title("Churn by Contract Type")
+plt.xticks(rotation=15)
+plt.show()
+
+
+
+plt.figure(figsize=(10, 5))
+
+sns.countplot(
+    data=df,
+    x="PaymentMethod",
+    hue="Churn"
+)
+
+plt.title("Churn by Payment Method")
+plt.xticks(rotation=30)
+plt.show()
+
+
+
+
+
+
+numeric_df = df[
+    ["tenure", "MonthlyCharges", "TotalCharges"]
+].copy()
+
+numeric_df["Churn"] = df["Churn"].map({
+    "No": 0,
+    "Yes": 1
+})
+
+correlation = numeric_df.corr()
+
+print(correlation)
+
+
+
+plt.figure(figsize=(7, 5))
 
 sns.heatmap(
-    corr_matrix,
+    correlation,
     annot=True,
     cmap="coolwarm",
-    fmt=".2f",
-    linewidths=0.5,
-    ax=axes[1, 1],
+    fmt=".2f"
 )
-axes[1, 1].set_title("Correlation Heatmap of Numerical Features", fontsize=14)
 
-# Adjust layout so plots don't overlap
-plt.tight_layout()
-
-# Display the combined plots
+plt.title("Correlation Matrix")
 plt.show()
 
 
-
 # ==========================================
-#             Correlation
-# ==========================================
-
-
-
-correlation_matrix = data.corr(numeric_only=True)
-
-
-# Survival is mostly affected by PClass because it is correlating with survival with -0.33 maximum than all others
-
-
-
-# ==========================================
-#         Exporting DataSet
+#         Prepare the data
 # ==========================================
 
 
+df = df.drop("customerID", axis=1)
+df["TotalCharges"] = pd.to_numeric(
+    df["TotalCharges"],
+    errors="coerce"
+)
+X = df.drop("Churn", axis=1)
+y = df["Churn"].map({
+    "No": 0,
+    "Yes": 1
+})
+
+
+# ==========================================
+# Identify numerical and categorical columns
+# ==========================================
+
+
+numeric_features = X.select_dtypes(
+    include=["int64", "float64"]
+).columns.tolist()
+
+categorical_features = X.select_dtypes(
+    include=["object"]
+).columns.tolist()
+
+print("Numerical Features:")
+print(numeric_features)
+
+print("\nCategorical Features:")
+print(categorical_features)
 
 
 
-data.to_csv("G:\\Internships\\Neurofive ML\\Week 1\\Task 1\\Titanic_Cleaned.csv")
+# ==========================================
+#           Train/Test Split
+# ==========================================
+
+
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42,
+    stratify=y
+)
+
+print("Training samples:", len(X_train))
+print("Testing samples:", len(X_test))
+
+
+
+# ==========================================
+#            Preprocessing
+# ==========================================
+
+numeric_transformer = Pipeline(
+    steps=[
+        ("imputer", SimpleImputer(strategy="median")),
+        ("scaler", StandardScaler())
+    ]
+)
+
+categorical_transformer = Pipeline(
+    steps=[
+        ("imputer", SimpleImputer(strategy="most_frequent")),
+        ("onehot", OneHotEncoder(
+            handle_unknown="ignore",
+            drop="first"
+        ))
+    ]
+)
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ("num", numeric_transformer, numeric_features),
+        ("cat", categorical_transformer, categorical_features)
+    ]
+)
+
+
+# ==========================================
+#          Decision Tree Model
+# ==========================================
+
+decision_tree = Pipeline(
+    steps=[
+        ("preprocessor", preprocessor),
+
+        ("classifier", DecisionTreeClassifier(
+            random_state=42,
+            class_weight="balanced",
+            max_depth=5
+        ))
+    ]
+)
+
+
+# ==========================================
+#        Train Decision Tree
+# ==========================================
+
+decision_tree.fit(X_train, y_train)
+
+
+# ==========================================
+#       Decision Tree Predictions
+# ==========================================
+
+y_pred_tree = decision_tree.predict(X_test)
+
+
+# ==========================================
+#       Decision Tree Evaluation
+# ==========================================
+
+print("\n==========================================")
+print("         Decision Tree Results")
+print("==========================================")
+
+print("Accuracy:",
+      accuracy_score(y_test, y_pred_tree))
+
+print("Precision:",
+      precision_score(y_test, y_pred_tree))
+
+print("Recall:",
+      recall_score(y_test, y_pred_tree))
+
+print("F1 Score:",
+      f1_score(y_test, y_pred_tree))
+
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred_tree))
+
+
+# ==========================================
+#      Decision Tree Confusion Matrix
+# ==========================================
+
+cm_tree = confusion_matrix(
+    y_test,
+    y_pred_tree
+)
+
+print("\nConfusion Matrix:")
+print(cm_tree)
+
+plt.figure(figsize=(6, 5))
+
+sns.heatmap(
+    cm_tree,
+    annot=True,
+    fmt="d"
+)
+
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.title("Decision Tree Confusion Matrix")
+
+plt.show()
+
+
+# ==========================================
+#       Logistic Regression Model
+# ==========================================
+
+logistic_model = Pipeline(
+    steps=[
+        ("preprocessor", preprocessor),
+
+        ("classifier", LogisticRegression(
+            max_iter=1000,
+            class_weight="balanced"
+        ))
+    ]
+)
+
+
+# ==========================================
+#     Train Logistic Regression
+# ==========================================
+
+logistic_model.fit(X_train, y_train)
+
+
+# ==========================================
+#    Logistic Regression Predictions
+# ==========================================
+
+y_pred_logistic = logistic_model.predict(X_test)
+
+
+# ==========================================
+#    Logistic Regression Evaluation
+# ==========================================
+
+print("\n==========================================")
+print("       Logistic Regression Results")
+print("==========================================")
+
+print("Accuracy:",
+      accuracy_score(y_test, y_pred_logistic))
+
+print("Precision:",
+      precision_score(y_test, y_pred_logistic))
+
+print("Recall:",
+      recall_score(y_test, y_pred_logistic))
+
+print("F1 Score:",
+      f1_score(y_test, y_pred_logistic))
+
+print("\nClassification Report:")
+print(classification_report(
+    y_test,
+    y_pred_logistic
+))
+
+
+# ==========================================
+#           Model Comparison
+# ==========================================
+
+results = pd.DataFrame({
+
+    "Model": [
+        "Decision Tree",
+        "Logistic Regression"
+    ],
+
+    "Accuracy": [
+        accuracy_score(y_test, y_pred_tree),
+        accuracy_score(y_test, y_pred_logistic)
+    ],
+
+    "Precision": [
+        precision_score(y_test, y_pred_tree),
+        precision_score(y_test, y_pred_logistic)
+    ],
+
+    "Recall": [
+        recall_score(y_test, y_pred_tree),
+        recall_score(y_test, y_pred_logistic)
+    ],
+
+    "F1 Score": [
+        f1_score(y_test, y_pred_tree),
+        f1_score(y_test, y_pred_logistic)
+    ]
+})
+
+print("\n==========================================")
+print("            Model Comparison")
+print("==========================================")
+
+print(results)
+
+
+# ==========================================
+#       Decision Tree Feature Importance
+# ==========================================
+
+tree_model = decision_tree.named_steps["classifier"]
+
+feature_names = (
+    decision_tree
+    .named_steps["preprocessor"]
+    .get_feature_names_out()
+)
+
+importance = tree_model.feature_importances_
+
+feature_importance = pd.DataFrame({
+
+    "Feature": feature_names,
+
+    "Importance": importance
+})
+
+feature_importance = feature_importance.sort_values(
+    by="Importance",
+    ascending=False
+)
+
+
+# ==========================================
+#             Top 3 Features
+# ==========================================
+
+top_3_features = feature_importance.head(3)
+
+print("\n==========================================")
+print("      Top 3 Features Driving Churn")
+print("==========================================")
+
+print(top_3_features)
+
+
+# ==========================================
+#          Top 3 Features Plot
+# ==========================================
+
+plt.figure(figsize=(8, 5))
+
+sns.barplot(
+    data=top_3_features,
+    x="Importance",
+    y="Feature"
+)
+
+plt.title("Top 3 Features Driving Churn")
+
+plt.show()
