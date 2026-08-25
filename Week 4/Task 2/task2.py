@@ -1,297 +1,560 @@
 # ==========================================
 #         Importing Libraries
 # ==========================================
+
 import pandas as pd
 import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
+import seaborn as sns
+
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+
 from sklearn.metrics import (
     accuracy_score,
-    confusion_matrix,
-    classification_report,
     precision_score,
     recall_score,
-    f1_score
+    f1_score,
+    classification_report
 )
- 
-# ==========================================
-#         Importing DataSet
-# ==========================================
 
-
-data = pd.read_csv("G:\\Internships\\Neurofive ML\\Week 2\\Task 1\\Titanic_Cleaned.csv")
-
-
+from xgboost import XGBClassifier
 
 
 # ==========================================
-#     Encoding categorical columns 
+#          Importing DataSet
 # ==========================================
 
+df = pd.read_csv(
+    "G:\\Internships\\Neurofive ML\\Week 3\\Task 1\\Telco-Customer-Churn.csv"
+)
 
-# Encode categorical columns (e.g., "Sex", "Embarked") using OneHotEncoder or pd.get_dummies()
-
-df_encoded = pd.get_dummies(data, columns=['Sex', 'Embarked','Ticket','Cabin'], drop_first=True)
-
-
-# ==========================================
-#           Splitting dataset
-# ==========================================
-
-
-# Use scikit-learn to split your cleaned dataset into training and test sets using train_test_split
-
-X = df_encoded.drop(columns=['Survived','Name']) 
-y = df_encoded['Survived']
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-print(f"Training features shape: {X_train.shape}")
-print(f"Testing features shape: {X_test.shape}")
-
-
-
+print("Shape:", df.shape)
 
 
 # ==========================================
-#           Selecting a Model
+#          Cleaning the Data
 # ==========================================
 
+# Convert TotalCharges into numeric
 
-model = LogisticRegression(max_iter=1000)
-model.fit(X_train, y_train)
-
-
-
-
-
-# ==========================================
-#    Testing Accuracy & Confusion Matrix
-# ==========================================
+df["TotalCharges"] = pd.to_numeric(
+    df["TotalCharges"],
+    errors="coerce"
+)
 
 
+# Remove customer ID
 
-y_pred = model.predict(X_test)
-accuracy = accuracy_score(y_test, y_pred)
-print(f"Model Accuracy: {accuracy * 100:.2f}%")
-
-
-
-# Model Accuracy: 81.01%
-
-
-cm = confusion_matrix(y_test, y_pred)
-print("Confusion Matrix:")
-print(cm)
+df = df.drop(
+    "customerID",
+    axis=1
+)
 
 
 # ==========================================
-#           Visualization
+#          Feature Engineering
 # ==========================================
 
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-            xticklabels=['Did Not Survive', 'Survived'], 
-            yticklabels=['Did Not Survive', 'Survived'])
-plt.xlabel('Predicted')
-plt.ylabel('Actual')
-plt.title('Confusion Matrix')
-plt.show()
+# Feature 1:
+# Average monthly charge during tenure
+
+df["AverageCharge"] = (
+    df["TotalCharges"] /
+    df["tenure"].replace(0, np.nan)
+)
 
 
+# Feature 2:
+# Whether customer stayed for at least 1 year
+
+df["LongTermCustomer"] = (
+    df["tenure"] >= 12
+).astype(int)
 
 
-
-
-
-# ==========================================
-# Classification Report - Original Model
-# ==========================================
-
-print("\nOriginal Model Classification Report:")
-print(classification_report(y_test, y_pred))
-
-
+print("\nNew Features:")
+print("AverageCharge")
+print("LongTermCustomer")
 
 
 # ==========================================
-# Saving Original Model Metrics
+#          Features and Target
 # ==========================================
 
-original_precision = precision_score(
+X = df.drop(
+    "Churn",
+    axis=1
+)
+
+y = df["Churn"].map({
+    "No": 0,
+    "Yes": 1
+})
+
+
+# ==========================================
+#     Numerical and Categorical Columns
+# ==========================================
+
+numeric_features = X.select_dtypes(
+    include=["int64", "float64"]
+).columns.tolist()
+
+categorical_features = X.select_dtypes(
+    include=["object"]
+).columns.tolist()
+
+
+print("\nNumerical Features:")
+print(numeric_features)
+
+print("\nCategorical Features:")
+print(categorical_features)
+
+
+# ==========================================
+#          Train/Test Split
+# ==========================================
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42,
+    stratify=y
+)
+
+
+# ==========================================
+#          Preprocessing
+# ==========================================
+
+# Numerical columns
+
+numeric_transformer = Pipeline(
+    steps=[
+        (
+            "imputer",
+            SimpleImputer(strategy="median")
+        )
+    ]
+)
+
+
+# Categorical columns
+
+categorical_transformer = Pipeline(
+    steps=[
+        (
+            "imputer",
+            SimpleImputer(strategy="most_frequent")
+        ),
+
+        (
+            "onehot",
+            OneHotEncoder(
+                handle_unknown="ignore",
+                drop="first"
+            )
+        )
+    ]
+)
+
+
+# Combine preprocessing
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        (
+            "num",
+            numeric_transformer,
+            numeric_features
+        ),
+
+        (
+            "cat",
+            categorical_transformer,
+            categorical_features
+        )
+    ]
+)
+
+
+# ==========================================
+#          Logistic Regression
+#          Earlier Model
+# ==========================================
+
+logistic_model = Pipeline(
+    steps=[
+        (
+            "preprocessor",
+            preprocessor
+        ),
+
+        (
+            "model",
+            LogisticRegression(
+                max_iter=1000,
+                class_weight="balanced"
+            )
+        )
+    ]
+)
+
+
+# Train Logistic Regression
+
+logistic_model.fit(
+    X_train,
+    y_train
+)
+
+
+# Predictions
+
+y_pred_logistic = logistic_model.predict(
+    X_test
+)
+
+
+# ==========================================
+#          Random Forest
+# ==========================================
+
+random_forest = Pipeline(
+    steps=[
+        (
+            "preprocessor",
+            preprocessor
+        ),
+
+        (
+            "model",
+            RandomForestClassifier(
+                n_estimators=100,
+                random_state=42,
+                class_weight="balanced"
+            )
+        )
+    ]
+)
+
+
+# Train Random Forest
+
+random_forest.fit(
+    X_train,
+    y_train
+)
+
+
+# Predictions
+
+y_pred_rf = random_forest.predict(
+    X_test
+)
+
+
+# ==========================================
+#             XGBoost
+# ==========================================
+
+xgb_model = Pipeline(
+    steps=[
+        (
+            "preprocessor",
+            preprocessor
+        ),
+
+        (
+            "model",
+            XGBClassifier(
+                n_estimators=100,
+                max_depth=3,
+                learning_rate=0.1,
+                random_state=42,
+                eval_metric="logloss"
+            )
+        )
+    ]
+)
+
+
+# Train XGBoost
+
+xgb_model.fit(
+    X_train,
+    y_train
+)
+
+
+# Predictions
+
+y_pred_xgb = xgb_model.predict(
+    X_test
+)
+
+
+# ==========================================
+#          Model Evaluation
+# ==========================================
+
+def evaluate_model(
+    model_name,
     y_test,
-    y_pred
-)
+    predictions
+):
 
-original_recall = recall_score(
+    print("\n==========================================")
+    print(model_name)
+    print("==========================================")
+
+    accuracy = accuracy_score(
+        y_test,
+        predictions
+    )
+
+    precision = precision_score(
+        y_test,
+        predictions
+    )
+
+    recall = recall_score(
+        y_test,
+        predictions
+    )
+
+    f1 = f1_score(
+        y_test,
+        predictions
+    )
+
+    print("Accuracy:", accuracy)
+    print("Precision:", precision)
+    print("Recall:", recall)
+    print("F1 Score:", f1)
+
+    print("\nClassification Report:")
+
+    print(
+        classification_report(
+            y_test,
+            predictions
+        )
+    )
+
+    return accuracy, precision, recall, f1
+
+
+# Evaluate all three models
+
+logistic_results = evaluate_model(
+    "Logistic Regression",
     y_test,
-    y_pred
+    y_pred_logistic
 )
 
-original_f1 = f1_score(
+rf_results = evaluate_model(
+    "Random Forest",
     y_test,
-    y_pred
+    y_pred_rf
 )
 
-print(f"Precision: {original_precision:.4f}")
-print(f"Recall:    {original_recall:.4f}")
-print(f"F1-score:  {original_f1:.4f}")
-
-
-
-# ==========================================
-# Hyperparameter Tuning using GridSearchCV
-# ==========================================
-
-param_grid = {
-    'C': [0.01, 0.1, 1, 10, 100],
-    'solver': ['liblinear', 'lbfgs']
-}
-
-grid_search = GridSearchCV(
-    estimator=LogisticRegression(max_iter=2000),
-    param_grid=param_grid,
-    cv=5,
-    scoring='f1',
-    n_jobs=1
-)
-
-grid_search.fit(X_train, y_train)
-
-
-
-# ==========================================
-# Best Hyperparameters
-# ==========================================
-
-print("Best Parameters:")
-print(grid_search.best_params_)
-
-print("\nBest Cross-Validation F1-score:")
-print(grid_search.best_score_)
-
-
-# ==========================================
-# Get Best Tuned Model
-# ==========================================
-
-tuned_model = grid_search.best_estimator_
-
-print("Best Tuned Model:")
-print(tuned_model)
-
-
-
-# ==========================================
-# Test Tuned Model
-# ==========================================
-
-y_pred_tuned = tuned_model.predict(X_test)
-
-print(classification_report(y_test, y_pred_tuned))
-
-
-
-
-
-
-# ==========================================
-# Saving Tuned Model Metrics
-# ==========================================
-
-tuned_accuracy = accuracy_score(
+xgb_results = evaluate_model(
+    "XGBoost",
     y_test,
-    y_pred_tuned
+    y_pred_xgb
 )
-
-tuned_precision = precision_score(
-    y_test,
-    y_pred_tuned
-)
-
-tuned_recall = recall_score(
-    y_test,
-    y_pred_tuned
-)
-
-tuned_f1 = f1_score(
-    y_test,
-    y_pred_tuned
-)
-
-print("\nTuned Model Metrics:")
-print(f"Accuracy:  {tuned_accuracy:.4f}")
-print(f"Precision: {tuned_precision:.4f}")
-print(f"Recall:    {tuned_recall:.4f}")
-print(f"F1-score:  {tuned_f1:.4f}")
-
-
-
-
-
 
 
 # ==========================================
-# Before vs After Comparison
+#          Model Comparison
 # ==========================================
 
-comparison = pd.DataFrame({
-    'Metric': [
-        'Accuracy',
-        'Precision',
-        'Recall',
-        'F1-score'
+results = pd.DataFrame({
+
+    "Model": [
+        "Logistic Regression",
+        "Random Forest",
+        "XGBoost"
     ],
-    
-    'Original Model': [
-        accuracy,
-        original_precision,
-        original_recall,
-        original_f1
+
+    "Accuracy": [
+        logistic_results[0],
+        rf_results[0],
+        xgb_results[0]
     ],
-    
-    'Tuned Model': [
-        tuned_accuracy,
-        tuned_precision,
-        tuned_recall,
-        tuned_f1
+
+    "Precision": [
+        logistic_results[1],
+        rf_results[1],
+        xgb_results[1]
+    ],
+
+    "Recall": [
+        logistic_results[2],
+        rf_results[2],
+        xgb_results[2]
+    ],
+
+    "F1 Score": [
+        logistic_results[3],
+        rf_results[3],
+        xgb_results[3]
     ]
 })
 
+
 print("\n==========================================")
-print("BEFORE vs AFTER COMPARISON")
+print("             Model Comparison")
 print("==========================================")
 
-print(comparison)
-
+print(results)
 
 
 # ==========================================
-# Tuned Model Confusion Matrix
+#       Get Feature Names
 # ==========================================
 
-cm_tuned = confusion_matrix(
-    y_test,
-    y_pred_tuned
+feature_names = (
+    random_forest
+    .named_steps["preprocessor"]
+    .get_feature_names_out()
 )
 
-print("\nTuned Model Confusion Matrix:")
-print(cm_tuned)
 
-plt.figure(figsize=(6, 5))
+# ==========================================
+#       Random Forest Feature Importance
+# ==========================================
 
-sns.heatmap(
-    cm_tuned,
-    annot=True,
-    fmt='d',
-    cmap='Greens',
-    xticklabels=['Did Not Survive', 'Survived'],
-    yticklabels=['Did Not Survive', 'Survived']
+rf_model = (
+    random_forest
+    .named_steps["model"]
 )
 
-plt.xlabel('Predicted')
-plt.ylabel('Actual')
-plt.title('Tuned Logistic Regression - Confusion Matrix')
+rf_importance = rf_model.feature_importances_
+
+
+rf_features = pd.DataFrame({
+
+    "Feature": feature_names,
+
+    "Importance": rf_importance
+})
+
+
+rf_features = rf_features.sort_values(
+    by="Importance",
+    ascending=False
+)
+
+
+print("\n==========================================")
+print("     Random Forest Top 10 Features")
+print("==========================================")
+
+print(
+    rf_features.head(10)
+)
+
+
+# ==========================================
+#       XGBoost Feature Importance
+# ==========================================
+
+xgb_model_only = (
+    xgb_model
+    .named_steps["model"]
+)
+
+xgb_importance = (
+    xgb_model_only.feature_importances_
+)
+
+
+xgb_features = pd.DataFrame({
+
+    "Feature": feature_names,
+
+    "Importance": xgb_importance
+})
+
+
+xgb_features = xgb_features.sort_values(
+    by="Importance",
+    ascending=False
+)
+
+
+print("\n==========================================")
+print("          XGBoost Top 10 Features")
+print("==========================================")
+
+print(
+    xgb_features.head(10)
+)
+
+
+# ==========================================
+#       Random Forest Plot
+# ==========================================
+
+plt.figure(figsize=(8, 6))
+
+sns.barplot(
+    data=rf_features.head(10),
+    x="Importance",
+    y="Feature"
+)
+
+plt.title(
+    "Random Forest - Top 10 Features"
+)
 
 plt.show()
+
+
+# ==========================================
+#          XGBoost Plot
+# ==========================================
+
+plt.figure(figsize=(8, 6))
+
+sns.barplot(
+    data=xgb_features.head(10),
+    x="Importance",
+    y="Feature"
+)
+
+plt.title(
+    "XGBoost - Top 10 Features"
+)
+
+plt.show()
+
+
+# ==========================================
+#       Compare Important Features
+# ==========================================
+
+print("\n==========================================")
+print("     Random Forest vs XGBoost")
+print("==========================================")
+
+print("\nRandom Forest Top 5:")
+print(
+    rf_features.head(5)["Feature"].tolist()
+)
+
+print("\nXGBoost Top 5:")
+print(
+    xgb_features.head(5)["Feature"].tolist()
+)
