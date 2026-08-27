@@ -94,10 +94,10 @@ Each `TaskX` folder contains its own `README.md` with task details, approach, an
 |------|--------|--------|
 | Week 1 | Titanic Dataset – Exploratory Data Analysis | Titanic Dataset: Missing Values, Outliers & Visualizations |
 | Week 2 | Predict Titanic Survival | House Price Prediction with Linear Regression |
-| Week 3 | Model Evaluation & Tuning | TBD |
-| Week 4 | TBD | TBD |
-| Week 5 | TBD | TBD |
-| Week 6 | TBD | TBD |
+| Week 3 | Model Evaluation & Tuning | Telco Customer Churn – EDA & Decision Tree vs. Logistic Regression |
+| Week 4 | End-to-End Pipeline with Feature Engineering (Telco Churn) | Ensemble Models: Random Forest vs. XGBoost (Telco Churn) |
+| Week 5 | Credit Card Fraud Detection – Handling Class Imbalance with SMOTE | Deploying the Telco Churn Model as a Streamlit App |
+| Week 6 | Final Capstone: House Price Prediction (Full ML Lifecycle + Streamlit Deployment) | TBD |
 
 ## Tools & Technologies
 - Python
