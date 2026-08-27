@@ -5,6 +5,8 @@ This repository documents my 6-week Machine Learning internship at Neurofive Sol
 ## Repository Structure
 
 ```
+│   README.md
+│
 ├───Week 1
 │   │   .Rhistory
 │   │
@@ -35,34 +37,53 @@ This repository documents my 6-week Machine Learning internship at Neurofive Sol
 │           scatterplot.png
 │           task2.py
 │
-└───Week 3
-    ├───Task 1
-    │       README.md
-    │       task1.py
-    │       Titanic_Cleaned.csv
-    │
-    └───Task 2
+├───Week 3
+│   ├───Task 1
+│   │       README.md
+│   │       task1.py
+│   │       Telco-Customer-Churn.csv
+│   │
+│   └───Task 2
+│           README.md
+│           task2.py
+│           Titanic_Cleaned.csv
+│
+├───Week 4
+│   ├───Task 1
+│   │       README.md
+│   │       task1.py
+│   │       Telco-Customer-Churn.csv
+│   │       telco_churn_pipeline.pkl
+│   │
+│   └───Task 2
+│           README.md
+│           task2.py
+│           Telco-Customer-Churn.csv
+│           Titanic_Cleaned.csv
+│
+├───Week 5
+│   ├───Task 1
+│   │       .gitignore
+│   │       .Rhistory
+│   │       creditcard.csv
+│   │       README.md
+│   │       task1.py
+│   │
+│   └───Task 2
+│           app.py
+│           README.md
+│           requirements.txt
+│           telco_churn_pipeline.pkl
+│
+└───Week 6
+    └───Task 1
             .Rhistory
-            correlation.png
+            app.py
+            house_price_model.pkl
+            house_price_prediction.py
             Housing.csv
             README.md
-            scatterplot.png
-            task2.py
-├── Week 4
-│   ├── Task1
-│   │   └── README.md
-│   └── Task2
-│       └── README.md
-├── Week 5
-│   ├── Task1
-│   │   └── README.md
-│   └── Task2
-│       └── README.md
-└── Week 6
-    ├── Task1
-    │   └── README.md
-    └── Task2
-        └── README.md
+            requirements.txt
 ```
 
 Each `TaskX` folder contains its own `README.md` with task details, approach, and findings, along with any related code and data files.
